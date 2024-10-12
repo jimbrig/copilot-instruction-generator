@@ -1,4 +1,8 @@
-# ext-name
+# copilot-instruction-generator
+
+## TODO
+
+- [ ] support cursor
 
 ## Configurations
 
