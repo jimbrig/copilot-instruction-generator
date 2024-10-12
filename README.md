@@ -3,13 +3,19 @@
 ## Configurations
 
 <!-- configs -->
-<!-- empty -->
+
+**No data**
+
 <!-- configs -->
 
 ## Commands
 
 <!-- commands -->
-<!-- empty -->
+
+| Command              | Title                |
+| -------------------- | -------------------- |
+| `cig.selectAIPrompt` | Generate Instruction |
+
 <!-- commands -->
 
 ## Sponsors

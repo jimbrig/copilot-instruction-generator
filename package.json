@@ -1,7 +1,7 @@
 {
   "publisher": "bjorn",
-  "name": "ext-name",
-  "displayName": "ext-name",
+  "name": "copilot-instruction-generator",
+  "displayName": "copilot-instruction-generator",
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@9.7.1",
@@ -9,13 +9,13 @@
   "author": "Bjorn Li <bjorn@gmail.com>",
   "license": "MIT",
   "funding": "https://github.com/sponsors/lxxorz",
-  "homepage": "https://github.com/lxxorz/ext-name#readme",
+  "homepage": "https://github.com/lxxorz/copilot-instruction-generator#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lxxorz/ext-name"
+    "url": "https://github.com/lxxorz/copilot-instruction-generator"
   },
   "bugs": {
-    "url": "https://github.com/lxxorz/ext-name/issues"
+    "url": "https://github.com/lxxorz/copilot-instruction-generator/issues"
   },
   "sponsor": {
     "url": "https://github.com/sponsors/lxxorz"
@@ -37,10 +37,15 @@
     "onStartupFinished"
   ],
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "cig.selectAIPrompt",
+        "title": "Generate Instruction"
+      }
+    ],
     "configuration": {
       "type": "object",
-      "title": "ext-name",
+      "title": "copilot-instruction-generator",
       "properties": {}
     }
   },
@@ -58,20 +63,20 @@
     "release": "bumpp && nr publish"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^2.26.0",
-    "@antfu/ni": "^0.22.4",
-    "@types/node": "^22.4.1",
-    "@types/vscode": "^1.92.0",
-    "@vscode/vsce": "^3.0.0",
-    "bumpp": "^9.5.1",
-    "eslint": "^9.9.0",
-    "esno": "^4.7.0",
-    "pnpm": "^9.7.1",
-    "reactive-vscode": "^0.2.0",
-    "tsup": "^8.2.4",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.1",
-    "vitest": "^2.0.5",
-    "vscode-ext-gen": "^0.4.1"
+    "@antfu/eslint-config": "^3.7.3",
+    "@antfu/ni": "^0.23.0",
+    "@types/node": "^22.7.5",
+    "@types/vscode": "^1.94.0",
+    "@vscode/vsce": "^3.1.1",
+    "bumpp": "^9.7.1",
+    "effect": "^3.9.1",
+    "eslint": "^9.12.0",
+    "esno": "^4.8.0",
+    "pnpm": "^9.12.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2",
+    "vscode-ext-gen": "^0.4.3"
   }
 }
