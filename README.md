@@ -4,6 +4,10 @@
 
 <!-- configs -->
 
+| Key                                         | Description                | Type      | Default |
+| ------------------------------------------- | -------------------------- | --------- | ------- |
+| `copilot-instruction-generator.cursorRules` | generate for cursor editor | `boolean` | `false` |
+
 <!-- configs -->
 
 ## Commands
