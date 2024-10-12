@@ -1,14 +1,8 @@
 # copilot-instruction-generator
 
-## TODO
-
-- [ ] support cursor
-
 ## Configurations
 
 <!-- configs -->
-
-**No data**
 
 <!-- configs -->
 

@@ -1,7 +1,8 @@
-import { defineConfigObject } from 'reactive-vscode'
+import * as vscode from 'vscode'
 import * as Meta from './generated/meta'
 
-export const config = defineConfigObject<Meta.ScopedConfigKeyTypeMap>(
-  Meta.scopedConfigs.scope,
-  Meta.scopedConfigs.defaults,
-)
+export const Configs = {
+  get cursorRules() {
+    return vscode.workspace.getConfiguration(Meta.displayName).get<boolean>('cursorRules', false)
+  },
+}

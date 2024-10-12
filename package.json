@@ -46,7 +46,13 @@
     "configuration": {
       "type": "object",
       "title": "copilot-instruction-generator",
-      "properties": {}
+      "properties": {
+        "copilot-instruction-generator.cursorRules": {
+          "type": "boolean",
+          "default": false,
+          "description": "generate for cursor editor"
+        }
+      }
     }
   },
   "scripts": {
