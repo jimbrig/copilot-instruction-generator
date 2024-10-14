@@ -35,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')],
       },
     )
 
@@ -51,14 +52,14 @@ export function activate(context: vscode.ExtensionContext) {
     const section = sections.find(s => s.tag === currentSection)
     const rule = section?.rules.find(r => r.title === currentRule)
 
-    panel.webview.html = getWebviewContent({
+    panel.webview.html = getWebviewContent(panel.webview, {
       title: rule ? rule.title : 'Select a rule',
       content: rule ? rule.content : 'Please select a section and a rule to preview.',
       sectionNames: sections.map(section => section.tag),
-      sections,
+      sections, // Ensure sections are passed to getWebviewContent
       currentSection,
       currentRule,
-      scriptUri: panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media/main.js')),
+      uri: context.extensionUri,
     })
   }
 
@@ -66,13 +67,15 @@ export function activate(context: vscode.ExtensionContext) {
     switch (message.command) {
       case 'changeSection':
         currentSection = message.section
-        currentRule = undefined
+        currentRule = undefined // Reset currentRule when changing section
         await updatePanelContent(sections)
         break
       case 'changeRule':
-        currentRule = message.rule
+        currentRule = message.rule === '' ? undefined : message.rule // Handle empty selection
         await updatePanelContent(sections)
-        await writeRuleToFile(sections)
+        if (currentRule) {
+          await writeRuleToFile(sections)
+        }
         break
     }
   }
