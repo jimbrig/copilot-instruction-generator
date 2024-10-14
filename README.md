@@ -1,5 +1,9 @@
 # copilot-instruction-generator
 
+auto generate instruction for cursor / copilot.
+
+![demo](./media/demo.png)
+
 ## Configurations
 
 <!-- configs -->

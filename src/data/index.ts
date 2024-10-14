@@ -48,7 +48,7 @@ import { webDevelopmentRules } from "./rules/web-development";
 import { wordpressRules } from "./rules/wordpress";
 import { wordpressWoocommerce } from "./rules/wordpress-woocommerce";
 
-interface Rule {
+export interface Rule {
   title: string;
   slug: string;
   tags: string[];
@@ -134,3 +134,5 @@ export function getRuleBySlug(slug: string) {
 export function getRuleByTag(tag: string) {
   return rules.filter((rule) => rule.tags.includes(tag));
 }
+
+export type Section = ReturnType<typeof getSections>[number]
