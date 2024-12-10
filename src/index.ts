@@ -190,8 +190,17 @@ export function activate(context: vscode.ExtensionContext) {
   async function writeRuleToFile(sections: Section[]) {
     const rule = findCurrentRule(sections)
     if (rule) {
-      await insertPromptToFile(rule.content)
-      vscode.window.showInformationMessage(`Rule "${currentRule}" written successfully.`)
+      const messages = getLocaleMessages()
+      const result = await vscode.window.showWarningMessage(
+        messages.confirmOverwrite,
+        messages.overwrite,
+        messages.cancel
+      )
+
+      if (result === messages.overwrite) {
+        await insertPromptToFile(rule.content)
+        vscode.window.showInformationMessage(messages.ruleAddedSuccess(currentRule!))
+      }
     }
   }
 

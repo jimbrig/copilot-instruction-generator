@@ -31,11 +31,11 @@ auto generate instruction for cursor / copilot.
 
 <!-- commands -->
 
-| Command                | Title                           |
-| ---------------------- | ------------------------------- |
-| `cig.selectAIPrompt`   | CIG: Generate Instruction       |
-| `cig.searchAIPrompt`   | CIG: Search and Add Instruction |
-| `cig.clearGlobalState` | CIG: Clear Extension State      |
+| Command                | Title                                |
+| ---------------------- | ------------------------------------ |
+| `cig.selectAIPrompt`   | CIG: Browse Instructions by Category |
+| `cig.searchAIPrompt`   | CIG: Search Instructions by Keyword  |
+| `cig.clearGlobalState` | CIG: Clear Extension State           |
 
 <!-- commands -->
 

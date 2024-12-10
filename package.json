@@ -40,12 +40,12 @@
     "commands": [
       {
         "command": "cig.selectAIPrompt",
-        "title": "Generate Instruction",
+        "title": "Browse Instructions by Category",
         "category": "CIG"
       },
       {
         "command": "cig.searchAIPrompt",
-        "title": "Search and Add Instruction",
+        "title": "Search Instructions by Keyword",
         "category": "CIG"
       },
       {
