@@ -3,7 +3,6 @@
   "name": "copilot-instruction-generator",
   "displayName": "copilot-instruction-generator",
   "version": "0.0.3",
-  "private": true,
   "packageManager": "pnpm@9.14.3",
   "description": "",
   "author": "Bjorn Li <bjorn@gmail.com>",
