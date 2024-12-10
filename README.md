@@ -18,11 +18,18 @@ auto generate instruction for cursor / copilot.
 
 <!-- commands -->
 
-| Command              | Title                |
-| -------------------- | -------------------- |
-| `cig.selectAIPrompt` | Generate Instruction |
+| Command              | Title                      |
+| -------------------- | -------------------------- |
+| `cig.selectAIPrompt` | Generate Instruction       |
+| `cig.searchAIPrompt` | Search and Add Instruction |
 
 <!-- commands -->
+
+## Development
+
+1. clone the repo and run `pnpm install` to install the dependencies.
+2. install vscode recommended extensions.
+3. run `pnpm dev` to start the extension.
 
 ## Sponsors
 

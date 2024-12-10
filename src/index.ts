@@ -2,12 +2,14 @@ import type { Rule, Section } from './data'
 import { Buffer } from 'node:buffer'
 import * as vscode from 'vscode'
 import { Configs } from './config'
-import { getSections } from './data'
+import { getSections, rules } from './data'
+import { getLocaleMessages } from './i18n'
 
 import { getWebviewContent } from './webview'
 
 const COPILOT_PATH = '.github/copilot-instructions.md'
 const CURSOR_PATH = '.cursorrules'
+const IGNORED_WORKSPACES_KEY = 'cigIgnoredWorkspaces'
 
 export function activate(context: vscode.ExtensionContext) {
   let panel: vscode.WebviewPanel | undefined
@@ -15,6 +17,95 @@ export function activate(context: vscode.ExtensionContext) {
   let currentRule: string | undefined
 
   const sections = getSections()
+
+  async function checkAIConfigFiles() {
+    const workspaceFolders = vscode.workspace.workspaceFolders
+    if (!workspaceFolders)
+      return
+
+    const messages = getLocaleMessages()
+    const workspaceFolder = workspaceFolders[0]
+    const workspaceId = workspaceFolder.uri.toString()
+
+    const ignoredWorkspaces: string[] = context.globalState.get(IGNORED_WORKSPACES_KEY, [])
+    if (ignoredWorkspaces.includes(workspaceId))
+      return
+
+    const copilotFile = vscode.Uri.joinPath(workspaceFolder.uri, COPILOT_PATH)
+    const cursorFile = vscode.Uri.joinPath(workspaceFolder.uri, CURSOR_PATH)
+
+    try {
+      await vscode.workspace.fs.stat(copilotFile)
+      return
+    }
+    catch {}
+
+    try {
+      await vscode.workspace.fs.stat(cursorFile)
+      return
+    }
+    catch {}
+
+    const result = await vscode.window.showInformationMessage(
+      messages.noAIConfigFound,
+      messages.searchAndCreate,
+      messages.ignoreProject,
+      messages.cancel,
+    )
+
+    if (result === messages.searchAndCreate) {
+      await vscode.commands.executeCommand('cig.searchAIPrompt')
+    }
+    else if (result === messages.ignoreProject) {
+      ignoredWorkspaces.push(workspaceId)
+      await context.globalState.update(IGNORED_WORKSPACES_KEY, ignoredWorkspaces)
+    }
+  }
+
+  checkAIConfigFiles()
+
+  const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+    checkAIConfigFiles()
+  })
+
+  context.subscriptions.push(workspaceWatcher)
+
+  const searchDisposable = vscode.commands.registerCommand('cig.searchAIPrompt', async () => {
+    const messages = getLocaleMessages()
+    const quickPick = vscode.window.createQuickPick()
+    quickPick.placeholder = messages.searchPlaceholder
+    quickPick.items = rules.map(rule => ({
+      label: rule.title,
+      description: rule.tags.join(', '),
+      rule,
+    }))
+
+    // 实时过滤结果
+    quickPick.onDidChangeValue((value) => {
+      const searchQuery = value.toLowerCase()
+      quickPick.items = rules
+        .filter((rule) => {
+          const searchText = `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase()
+          return searchText.includes(searchQuery)
+        })
+        .map(rule => ({
+          label: rule.title,
+          description: rule.tags.join(', '),
+          rule,
+        }))
+    })
+
+    quickPick.onDidAccept(async () => {
+      const selected = quickPick.selectedItems[0] as { label: string, description: string, rule: Rule }
+      if (selected) {
+        await insertPromptToFile(selected.rule.content)
+        vscode.window.showInformationMessage(messages.ruleAddedSuccess(selected.label))
+      }
+      quickPick.hide()
+    })
+
+    quickPick.show()
+  })
 
   const disposable = vscode.commands.registerCommand('cig.selectAIPrompt', async () => {
     if (panel) {
@@ -95,7 +186,7 @@ export function activate(context: vscode.ExtensionContext) {
       .find(r => r.title === currentRule)
   }
 
-  context.subscriptions.push(disposable)
+  context.subscriptions.push(disposable, searchDisposable)
 }
 
 async function insertPromptToFile(promptText: string) {
