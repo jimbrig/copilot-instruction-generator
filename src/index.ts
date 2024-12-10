@@ -19,6 +19,9 @@ export function activate(context: vscode.ExtensionContext) {
   const sections = getSections()
 
   async function checkAIConfigFiles() {
+    if (!Configs.enableAutoDetect)
+      return
+
     const workspaceFolders = vscode.workspace.workspaceFolders
     if (!workspaceFolders)
       return
@@ -186,7 +189,21 @@ export function activate(context: vscode.ExtensionContext) {
       .find(r => r.title === currentRule)
   }
 
-  context.subscriptions.push(disposable, searchDisposable)
+  const clearStateDisposable = vscode.commands.registerCommand('cig.clearGlobalState', async () => {
+    const messages = getLocaleMessages()
+    const result = await vscode.window.showWarningMessage(
+      messages.clearStateConfirm,
+      messages.yes,
+      messages.no,
+    )
+
+    if (result === messages.yes) {
+      await context.globalState.update(IGNORED_WORKSPACES_KEY, undefined)
+      vscode.window.showInformationMessage(messages.clearStateSuccess)
+    }
+  })
+
+  context.subscriptions.push(disposable, searchDisposable, clearStateDisposable)
 }
 
 async function insertPromptToFile(promptText: string) {

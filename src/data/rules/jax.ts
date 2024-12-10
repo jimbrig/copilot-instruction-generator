@@ -1,9 +1,7 @@
-import type { Rule } from "@/types/rule";
-
-export const jaxRules: Rule[] = [{
-  tags: ["Python", "JAX", "Machine Learning"],
-  title: "JAX Best Practices",
-  slug: "jax-best-practices",
+export const jaxRules = [{
+  tags: ['Python', 'JAX', 'Machine Learning'],
+  title: 'JAX Best Practices',
+  slug: 'jax-best-practices',
   content: `
 You are an expert in JAX, Python, NumPy, and Machine Learning.
 
@@ -105,8 +103,8 @@ Best Practices
 Refer to the official JAX documentation for the latest best practices on using JAX transformations and APIs: [JAX Documentation](https://jax.readthedocs.io)
 `,
   author: {
-    name: "Straughter Guthrie",
-    url: "https://quickcolbert.com", // Optional
-    avatar: "https://raw.githubusercontent.com/jmanhype/cursor.directory/refs/heads/main/56135400.png", // Optional
+    name: 'Straughter Guthrie',
+    url: 'https://quickcolbert.com', // Optional
+    avatar: 'https://raw.githubusercontent.com/jmanhype/cursor.directory/refs/heads/main/56135400.png', // Optional
   },
-}];
+}]

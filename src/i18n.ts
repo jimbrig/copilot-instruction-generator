@@ -6,7 +6,12 @@ interface LocalizedMessages {
   searchAndCreate: string
   ignoreProject: string
   cancel: string
-  ruleAddedSuccess: string
+  ruleAddedSuccess: (title: string) => string
+  clearStateConfirm: string
+  clearStateSuccess: string
+  yes: string
+  no: string
+  configEnableAutoDetect: string
 }
 
 const zhCN: LocalizedMessages = {
@@ -16,6 +21,11 @@ const zhCN: LocalizedMessages = {
   ignoreProject: '忽略此项目',
   cancel: '取消',
   ruleAddedSuccess: (title: string) => `规则 "${title}" 已成功添加`,
+  clearStateConfirm: '确定要清除所有已保存的插件状态吗？这将重置所有已忽略的项目。',
+  clearStateSuccess: '插件状态已清除',
+  yes: '是',
+  no: '否',
+  configEnableAutoDetect: '自动检测并提示创建 AI 配置文件',
 }
 
 const enUS: LocalizedMessages = {
@@ -25,6 +35,11 @@ const enUS: LocalizedMessages = {
   ignoreProject: 'Ignore Project',
   cancel: 'Cancel',
   ruleAddedSuccess: (title: string) => `Rule "${title}" added successfully`,
+  clearStateConfirm: 'Are you sure you want to clear all saved extension state? This will reset all ignored projects.',
+  clearStateSuccess: 'Extension state has been cleared',
+  yes: 'Yes',
+  no: 'No',
+  configEnableAutoDetect: 'Automatically detect and prompt to create AI config files',
 }
 
 const messages: Record<string, LocalizedMessages> = {

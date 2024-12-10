@@ -45,6 +45,11 @@
       {
         "command": "cig.searchAIPrompt",
         "title": "Search and Add Instruction"
+      },
+      {
+        "command": "cig.clearGlobalState",
+        "title": "CIG: Clear Extension State",
+        "category": "CIG"
       }
     ],
     "configuration": {
@@ -55,6 +60,11 @@
           "type": "boolean",
           "default": false,
           "description": "generate for cursor editor"
+        },
+        "copilot-instruction-generator.enableAutoDetect": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动检测并提示创建 AI 配置文件"
         }
       }
     }

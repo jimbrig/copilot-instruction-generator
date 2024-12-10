@@ -2,15 +2,18 @@
 
 auto generate instruction for cursor / copilot.
 
+check current project and generate instruction.
+
 ![demo](./media/demo.png)
 
 ## Configurations
 
 <!-- configs -->
 
-| Key                                         | Description                | Type      | Default |
-| ------------------------------------------- | -------------------------- | --------- | ------- |
-| `copilot-instruction-generator.cursorRules` | generate for cursor editor | `boolean` | `false` |
+| Key                                              | Description                | Type      | Default |
+| ------------------------------------------------ | -------------------------- | --------- | ------- |
+| `copilot-instruction-generator.cursorRules`      | generate for cursor editor | `boolean` | `false` |
+| `copilot-instruction-generator.enableAutoDetect` | 自动检测并提示创建 AI 配置文件          | `boolean` | `true`  |
 
 <!-- configs -->
 
@@ -18,10 +21,11 @@ auto generate instruction for cursor / copilot.
 
 <!-- commands -->
 
-| Command              | Title                      |
-| -------------------- | -------------------------- |
-| `cig.selectAIPrompt` | Generate Instruction       |
-| `cig.searchAIPrompt` | Search and Add Instruction |
+| Command                | Title                           |
+| ---------------------- | ------------------------------- |
+| `cig.selectAIPrompt`   | Generate Instruction            |
+| `cig.searchAIPrompt`   | Search and Add Instruction      |
+| `cig.clearGlobalState` | CIG: CIG: Clear Extension State |
 
 <!-- commands -->
 
