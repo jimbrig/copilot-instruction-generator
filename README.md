@@ -14,8 +14,6 @@ auto generate instruction for cursor / copilot.
 - [] auto update rules
 - [] support custom rules
 
-![demo](./media/demo.png)
-
 ## Configurations
 
 <!-- configs -->
