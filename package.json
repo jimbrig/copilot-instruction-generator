@@ -40,15 +40,17 @@
     "commands": [
       {
         "command": "cig.selectAIPrompt",
-        "title": "Generate Instruction"
+        "title": "Generate Instruction",
+        "category": "CIG"
       },
       {
         "command": "cig.searchAIPrompt",
-        "title": "Search and Add Instruction"
+        "title": "Search and Add Instruction",
+        "category": "CIG"
       },
       {
         "command": "cig.clearGlobalState",
-        "title": "CIG: Clear Extension State",
+        "title": "Clear Extension State",
         "category": "CIG"
       }
     ],
@@ -59,12 +61,12 @@
         "copilot-instruction-generator.cursorRules": {
           "type": "boolean",
           "default": false,
-          "description": "generate for cursor editor"
+          "description": "Generate for Cursor Editor instead of GitHub Copilot"
         },
         "copilot-instruction-generator.enableAutoDetect": {
           "type": "boolean",
           "default": true,
-          "description": "自动检测并提示创建 AI 配置文件"
+          "description": "Automatically detect and prompt to create AI config files"
         }
       }
     }

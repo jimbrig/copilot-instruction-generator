@@ -2,7 +2,17 @@
 
 auto generate instruction for cursor / copilot.
 
-check current project and generate instruction.
+## features
+
+- detect current project and generate instruction
+- support multiple AI assistants (Copilot, Cursor)
+- search by keywords and add predefined instructions
+
+### Todo
+
+- [x] support search and add predefined instructions
+- [] auto update rules
+- [] support custom rules
 
 ![demo](./media/demo.png)
 
@@ -10,10 +20,10 @@ check current project and generate instruction.
 
 <!-- configs -->
 
-| Key                                              | Description                | Type      | Default |
-| ------------------------------------------------ | -------------------------- | --------- | ------- |
-| `copilot-instruction-generator.cursorRules`      | generate for cursor editor | `boolean` | `false` |
-| `copilot-instruction-generator.enableAutoDetect` | 自动检测并提示创建 AI 配置文件          | `boolean` | `true`  |
+| Key                                              | Description                                               | Type      | Default |
+| ------------------------------------------------ | --------------------------------------------------------- | --------- | ------- |
+| `copilot-instruction-generator.cursorRules`      | Generate for Cursor Editor instead of GitHub Copilot      | `boolean` | `false` |
+| `copilot-instruction-generator.enableAutoDetect` | Automatically detect and prompt to create AI config files | `boolean` | `true`  |
 
 <!-- configs -->
 
@@ -23,9 +33,9 @@ check current project and generate instruction.
 
 | Command                | Title                           |
 | ---------------------- | ------------------------------- |
-| `cig.selectAIPrompt`   | Generate Instruction            |
-| `cig.searchAIPrompt`   | Search and Add Instruction      |
-| `cig.clearGlobalState` | CIG: CIG: Clear Extension State |
+| `cig.selectAIPrompt`   | CIG: Generate Instruction       |
+| `cig.searchAIPrompt`   | CIG: Search and Add Instruction |
+| `cig.clearGlobalState` | CIG: Clear Extension State      |
 
 <!-- commands -->
 

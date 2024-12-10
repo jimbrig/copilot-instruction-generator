@@ -18,6 +18,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   const sections = getSections()
 
+  // 预处理规则的搜索文本
+  const rulesWithSearchText = rules.map(rule => ({
+    ...rule,
+    searchText: `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase(),
+  }))
+
   async function checkAIConfigFiles() {
     if (!Configs.enableAutoDetect)
       return
@@ -77,25 +83,32 @@ export function activate(context: vscode.ExtensionContext) {
     const messages = getLocaleMessages()
     const quickPick = vscode.window.createQuickPick()
     quickPick.placeholder = messages.searchPlaceholder
-    quickPick.items = rules.map(rule => ({
+
+    // 初始显示所有规则
+    const getAllItems = () => rulesWithSearchText.map(rule => ({
       label: rule.title,
       description: rule.tags.join(', '),
       rule,
     }))
 
-    // 实时过滤结果
+    quickPick.items = getAllItems()
+
+    // 使用防抖进行搜索
+    let debounceTimer: NodeJS.Timeout
     quickPick.onDidChangeValue((value) => {
-      const searchQuery = value.toLowerCase()
-      quickPick.items = rules
-        .filter((rule) => {
-          const searchText = `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase()
-          return searchText.includes(searchQuery)
-        })
-        .map(rule => ({
-          label: rule.title,
-          description: rule.tags.join(', '),
-          rule,
-        }))
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const searchQuery = value.toLowerCase()
+        quickPick.items = searchQuery
+          ? rulesWithSearchText
+              .filter(rule => rule.searchText.includes(searchQuery))
+              .map(rule => ({
+                label: rule.title,
+                description: rule.tags.join(', '),
+                rule,
+              }))
+          : getAllItems()
+      }, 100) // 100ms 的防抖延迟
     })
 
     quickPick.onDidAccept(async () => {
@@ -214,14 +227,6 @@ async function insertPromptToFile(promptText: string) {
   }
 
   const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
-
-  try {
-    const content = await vscode.workspace.fs.readFile(filePath)
-    const updatedContent = `${content.toString()}\n\n${promptText}`
-    await vscode.workspace.fs.writeFile(filePath, Buffer.from(updatedContent, 'utf8'))
-  }
-  catch {
-    const initialContent = `# ${Configs.cursorRules ? 'Cursor Rules' : 'Copilot Instructions'}\n\n${promptText}`
-    await vscode.workspace.fs.writeFile(filePath, Buffer.from(initialContent, 'utf8'))
-  }
+  const initialContent = `# ${Configs.cursorRules ? 'Cursor Rules' : 'Copilot Instructions'}\n\n${promptText}`
+  await vscode.workspace.fs.writeFile(filePath, Buffer.from(initialContent, 'utf8'))
 }
