@@ -1,5 +1,4 @@
 import * as vscode from 'vscode'
-import * as Meta from './generated/meta'
 
 export interface ConfigurationType {
   cursorRules: boolean

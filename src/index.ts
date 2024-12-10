@@ -194,7 +194,7 @@ export function activate(context: vscode.ExtensionContext) {
       const result = await vscode.window.showWarningMessage(
         messages.confirmOverwrite,
         messages.overwrite,
-        messages.cancel
+        messages.cancel,
       )
 
       if (result === messages.overwrite) {
