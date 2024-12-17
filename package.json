@@ -1,21 +1,21 @@
 {
   "publisher": "BjornLi",
-  "name": "copilot-instruction-generator",
-  "displayName": "copilot-instruction-generator",
+  "name": "ai-rules",
+  "displayName": "AI Rules",
   "version": "0.0.3",
   "private": true,
   "packageManager": "pnpm@9.14.3",
-  "description": "",
+  "description": "Manage and apply AI assistant rules for GitHub Copilot and Cursor",
   "author": "Bjorn Li <bjorn@gmail.com>",
   "license": "MIT",
   "funding": "https://github.com/sponsors/lxxorz",
-  "homepage": "https://github.com/lxxorz/copilot-instruction-generator#readme",
+  "homepage": "https://github.com/lxxorz/ai-rules#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lxxorz/copilot-instruction-generator"
+    "url": "https://github.com/lxxorz/ai-rules"
   },
   "bugs": {
-    "url": "https://github.com/lxxorz/copilot-instruction-generator/issues"
+    "url": "https://github.com/lxxorz/ai-rules/issues"
   },
   "sponsor": {
     "url": "https://github.com/sponsors/lxxorz"
@@ -24,7 +24,7 @@
     "Other"
   ],
   "main": "./dist/index.js",
-  "icon": "res/icon.png",
+  "icon": "media/icon.svg",
   "files": [
     "LICENSE.md",
     "dist/*",
@@ -52,23 +52,43 @@
         "command": "cig.clearGlobalState",
         "title": "Clear Extension State",
         "category": "CIG"
+      },
+      {
+        "command": "cig.openRuleFile",
+        "title": "Open AI Config File",
+        "category": "CIG",
+        "icon": "$(notebook-edit)"
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "copilot-instruction-generator",
+      "title": "AI Rules",
       "properties": {
-        "copilot-instruction-generator.cursorRules": {
+        "ai-rules.cursorRules": {
           "type": "boolean",
           "default": false,
           "description": "Generate for Cursor Editor instead of GitHub Copilot"
         },
-        "copilot-instruction-generator.enableAutoDetect": {
+        "ai-rules.enableAutoDetect": {
           "type": "boolean",
           "default": true,
           "description": "Automatically detect and prompt to create AI config files"
         }
       }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "cig.openRuleFile",
+          "group": "navigation"
+        }
+      ],
+      "statusBar": [
+        {
+          "command": "cig.openRuleFile",
+          "group": "navigation"
+        }
+      ]
     }
   },
   "scripts": {

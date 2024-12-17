@@ -18,10 +18,10 @@ auto generate instruction for cursor / copilot.
 
 <!-- configs -->
 
-| Key                                              | Description                                               | Type      | Default |
-| ------------------------------------------------ | --------------------------------------------------------- | --------- | ------- |
-| `copilot-instruction-generator.cursorRules`      | Generate for Cursor Editor instead of GitHub Copilot      | `boolean` | `false` |
-| `copilot-instruction-generator.enableAutoDetect` | Automatically detect and prompt to create AI config files | `boolean` | `true`  |
+| Key                         | Description                                               | Type      | Default |
+| --------------------------- | --------------------------------------------------------- | --------- | ------- |
+| `ai-rules.cursorRules`      | Generate for Cursor Editor instead of GitHub Copilot      | `boolean` | `false` |
+| `ai-rules.enableAutoDetect` | Automatically detect and prompt to create AI config files | `boolean` | `true`  |
 
 <!-- configs -->
 
@@ -34,6 +34,7 @@ auto generate instruction for cursor / copilot.
 | `cig.selectAIPrompt`   | CIG: Browse Instructions by Category |
 | `cig.searchAIPrompt`   | CIG: Search Instructions by Keyword  |
 | `cig.clearGlobalState` | CIG: Clear Extension State           |
+| `cig.openRuleFile`     | CIG: Open AI Config File             |
 
 <!-- commands -->
 

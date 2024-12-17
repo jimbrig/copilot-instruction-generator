@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import * as vscode from 'vscode'
 import { Configs } from './config'
 import { getSections, rules } from './data'
+import { getCustomRules, saveCustomRule } from './data/custom-rules'
 import { getLocaleMessages } from './i18n'
 
 import { getWebviewContent } from './webview'
@@ -12,6 +13,19 @@ const CURSOR_PATH = '.cursorrules'
 const IGNORED_WORKSPACES_KEY = 'cigIgnoredWorkspaces'
 
 export function activate(context: vscode.ExtensionContext) {
+  // 创建 status bar item
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100,
+  )
+  statusBarItem.command = 'cig.openRuleFile'
+  statusBarItem.text = '$(notebook-edit) AI Rules'
+  statusBarItem.tooltip = 'Open AI Config File'
+  statusBarItem.show()
+
+  // 将 status bar item 添加到订阅列表
+  context.subscriptions.push(statusBarItem)
+
   let panel: vscode.WebviewPanel | undefined
   let currentSection: string | undefined
   let currentRule: string | undefined
@@ -84,8 +98,84 @@ export function activate(context: vscode.ExtensionContext) {
     const quickPick = vscode.window.createQuickPick()
     quickPick.placeholder = messages.searchPlaceholder
 
+    // 获取所有规则，包括自定义规则
+    const customRules = await getCustomRules(context)
+    const allRules = [...rulesWithSearchText, ...customRules.map(rule => ({
+      ...rule,
+      searchText: `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase(),
+    }))]
+
+    // 添加按钮到 QuickPick
+    quickPick.buttons = [
+      {
+        iconPath: new vscode.ThemeIcon('add'),
+        tooltip: messages.addCustomRule,
+      },
+    ]
+
+    quickPick.onDidTriggerButton(async () => {
+      const title = await vscode.window.showInputBox({
+        prompt: messages.enterRuleTitle,
+        placeHolder: messages.ruleTitlePlaceholder,
+      })
+      if (!title)
+        return
+
+      const content = await vscode.window.showInputBox({
+        prompt: messages.enterRuleContent,
+        placeHolder: messages.ruleContentPlaceholder,
+      })
+      if (!content)
+        return
+
+      const tags = await vscode.window.showInputBox({
+        prompt: messages.enterRuleTags,
+        placeHolder: messages.ruleTagsPlaceholder,
+      })
+
+      const newRule: Rule = {
+        title,
+        slug: title.toLowerCase().replace(/\s+/g, '-'),
+        content,
+        tags: tags ? tags.split(',').map(t => t.trim()) : [],
+        author: {
+          name: 'Custom',
+          url: '',
+          avatar: '',
+        },
+      }
+
+      await saveCustomRule(context, newRule)
+      vscode.window.showInformationMessage(messages.customRuleAdded)
+      quickPick.hide()
+    })
+
+    // 修改选择处理逻辑
+    quickPick.onDidAccept(async () => {
+      const selected = quickPick.selectedItems[0] as { label: string, description: string, rule: Rule }
+      if (selected) {
+        const choice = await vscode.window.showQuickPick(
+          [
+            { label: messages.replaceContent, value: 'replace' },
+            { label: messages.appendContent, value: 'append' },
+          ],
+          { placeHolder: messages.selectOperation },
+        )
+
+        if (choice) {
+          if (choice.value === 'append')
+            await appendPromptToFile(selected.rule.content)
+          else
+            await insertPromptToFile(selected.rule.content)
+
+          vscode.window.showInformationMessage(messages.ruleAddedSuccess(selected.label))
+        }
+      }
+      quickPick.hide()
+    })
+
     // 初始显示所有规则
-    const getAllItems = () => rulesWithSearchText.map(rule => ({
+    const getAllItems = () => allRules.map(rule => ({
       label: rule.title,
       description: rule.tags.join(', '),
       rule,
@@ -100,7 +190,7 @@ export function activate(context: vscode.ExtensionContext) {
       debounceTimer = setTimeout(() => {
         const searchQuery = value.toLowerCase()
         quickPick.items = searchQuery
-          ? rulesWithSearchText
+          ? allRules
               .filter(rule => rule.searchText.includes(searchQuery))
               .map(rule => ({
                 label: rule.title,
@@ -109,15 +199,6 @@ export function activate(context: vscode.ExtensionContext) {
               }))
           : getAllItems()
       }, 100) // 100ms 的防抖延迟
-    })
-
-    quickPick.onDidAccept(async () => {
-      const selected = quickPick.selectedItems[0] as { label: string, description: string, rule: Rule }
-      if (selected) {
-        await insertPromptToFile(selected.rule.content)
-        vscode.window.showInformationMessage(messages.ruleAddedSuccess(selected.label))
-      }
-      quickPick.hide()
     })
 
     quickPick.show()
@@ -225,7 +306,24 @@ export function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  context.subscriptions.push(disposable, searchDisposable, clearStateDisposable)
+  const openRuleFileDisposable = vscode.commands.registerCommand('cig.openRuleFile', async () => {
+    const workspaceFolders = vscode.workspace.workspaceFolders
+    if (!workspaceFolders) {
+      vscode.window.showErrorMessage(messages.noWorkspaceFolder)
+      return
+    }
+
+    const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
+    try {
+      const doc = await vscode.workspace.openTextDocument(filePath)
+      await vscode.window.showTextDocument(doc)
+    }
+    catch {
+      vscode.window.showErrorMessage(messages.fileNotFound)
+    }
+  })
+
+  context.subscriptions.push(disposable, searchDisposable, clearStateDisposable, openRuleFileDisposable)
 }
 
 async function insertPromptToFile(promptText: string) {
@@ -238,4 +336,23 @@ async function insertPromptToFile(promptText: string) {
   const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
   const initialContent = `# ${Configs.cursorRules ? 'Cursor Rules' : 'Copilot Instructions'}\n\n${promptText}`
   await vscode.workspace.fs.writeFile(filePath, Buffer.from(initialContent, 'utf8'))
+}
+
+async function appendPromptToFile(promptText: string) {
+  const workspaceFolders = vscode.workspace.workspaceFolders
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage(messages.noWorkspaceFolder)
+    return
+  }
+
+  const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
+  try {
+    const existingContent = await vscode.workspace.fs.readFile(filePath)
+    const newContent = `${existingContent.toString()}\n\n${promptText}`
+    await vscode.workspace.fs.writeFile(filePath, Buffer.from(newContent, 'utf8'))
+  }
+  catch {
+    // 如果文件不存在，创建新文件
+    await insertPromptToFile(promptText)
+  }
 }
