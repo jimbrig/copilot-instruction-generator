@@ -2,7 +2,7 @@
   "publisher": "BjornLi",
   "name": "ai-rules",
   "displayName": "AI Rules",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "packageManager": "pnpm@9.14.3",
   "description": "Manage and apply AI assistant rules for GitHub Copilot and Cursor",
@@ -39,25 +39,43 @@
   "contributes": {
     "commands": [
       {
-        "command": "cig.selectAIPrompt",
-        "title": "Browse Instructions by Category",
-        "category": "CIG"
+        "command": "ai-rules.selectAIPrompt",
+        "title": "Browse AI Rules by Category",
+        "category": "AI Rules"
       },
       {
-        "command": "cig.searchAIPrompt",
-        "title": "Search Instructions by Keyword",
-        "category": "CIG"
+        "command": "ai-rules.searchAIPrompt",
+        "title": "Search AI Rules",
+        "category": "AI Rules"
       },
       {
-        "command": "cig.clearGlobalState",
+        "command": "ai-rules.clearGlobalState",
         "title": "Clear Extension State",
-        "category": "CIG"
+        "category": "AI Rules"
       },
       {
-        "command": "cig.openRuleFile",
-        "title": "Open AI Config File",
-        "category": "CIG",
+        "command": "ai-rules.openRuleFile",
+        "title": "Open AI Rules File",
+        "category": "AI Rules",
         "icon": "$(notebook-edit)"
+      },
+      {
+        "command": "ai-rules.manageCustomRules",
+        "title": "Manage Custom Rules",
+        "category": "AI Rules",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ai-rules.searchRules",
+        "title": "Search AI Rules",
+        "category": "AI Rules",
+        "icon": "$(search)"
+      },
+      {
+        "command": "ai-rules.createRule",
+        "title": "Create New Rule",
+        "category": "AI Rules",
+        "icon": "$(add)"
       }
     ],
     "configuration": {
@@ -79,13 +97,19 @@
     "menus": {
       "editor/title": [
         {
-          "command": "cig.openRuleFile",
-          "group": "navigation"
+          "command": "ai-rules.searchRules",
+          "group": "navigation@1",
+          "when": "resourceFilename =~ /\\.cursorrules$|\\.md$/"
+        },
+        {
+          "command": "ai-rules.createRule",
+          "group": "navigation@2",
+          "when": "resourceFilename =~ /\\.cursorrules$|\\.md$/"
         }
       ],
       "statusBar": [
         {
-          "command": "cig.openRuleFile",
+          "command": "ai-rules.openRuleFile",
           "group": "navigation"
         }
       ]
