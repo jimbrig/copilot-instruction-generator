@@ -12,7 +12,11 @@ auto generate instruction for cursor / copilot.
 
 - [x] support search and add predefined instructions
 - [] auto update rules
-- [] support custom rules
+- [x] support custom rules
+
+### how to use
+
+1. search rules
 
 ## Configurations
 
@@ -29,12 +33,15 @@ auto generate instruction for cursor / copilot.
 
 <!-- commands -->
 
-| Command                | Title                                |
-| ---------------------- | ------------------------------------ |
-| `cig.selectAIPrompt`   | CIG: Browse Instructions by Category |
-| `cig.searchAIPrompt`   | CIG: Search Instructions by Keyword  |
-| `cig.clearGlobalState` | CIG: Clear Extension State           |
-| `cig.openRuleFile`     | CIG: Open AI Config File             |
+| Command                      | Title                                 |
+| ---------------------------- | ------------------------------------- |
+| `ai-rules.selectAIPrompt`    | AI Rules: Browse AI Rules by Category |
+| `ai-rules.searchAIPrompt`    | AI Rules: Search AI Rules             |
+| `ai-rules.clearGlobalState`  | AI Rules: Clear Extension State       |
+| `ai-rules.openRuleFile`      | AI Rules: Open AI Rules File          |
+| `ai-rules.manageCustomRules` | AI Rules: Manage Custom Rules         |
+| `ai-rules.searchRules`       | AI Rules: Search AI Rules             |
+| `ai-rules.createRule`        | AI Rules: Create New Rule             |
 
 <!-- commands -->
 

@@ -27,6 +27,14 @@ interface LocalizedMessages {
   selectOperation: string
   noWorkspaceFolder: string
   fileNotFound: string
+  selectRuleToManage: string
+  editRule: string
+  deleteRule: string
+  selectAction: string
+  ruleUpdated: string
+  ruleDeleted: string
+  confirmDelete: (title: string) => string
+  createNewRuleDescription: string
 }
 
 const zhCN: LocalizedMessages = {
@@ -56,6 +64,14 @@ const zhCN: LocalizedMessages = {
   selectOperation: '选择操作方式',
   noWorkspaceFolder: '未找到工作区文件夹',
   fileNotFound: '未找到配置文件',
+  selectRuleToManage: '选择要管理的规则',
+  editRule: '编辑规则',
+  deleteRule: '删除规则',
+  selectAction: '选择操作',
+  ruleUpdated: '规则已更新',
+  ruleDeleted: '规则已删除',
+  confirmDelete: (title: string) => `确定要删除规则 "${title}" 吗？`,
+  createNewRuleDescription: '创建新的 AI 规则模板',
 }
 
 const enUS: LocalizedMessages = {
@@ -85,6 +101,14 @@ const enUS: LocalizedMessages = {
   selectOperation: 'Select operation',
   noWorkspaceFolder: 'No workspace folder found',
   fileNotFound: 'Config file not found',
+  selectRuleToManage: 'Select rule to manage',
+  editRule: 'Edit Rule',
+  deleteRule: 'Delete Rule',
+  selectAction: 'Select action',
+  ruleUpdated: 'Rule updated',
+  ruleDeleted: 'Rule deleted',
+  confirmDelete: (title: string) => `Are you sure you want to delete rule "${title}"?`,
+  createNewRuleDescription: 'Create a new AI rule template',
 }
 
 const messages: Record<string, LocalizedMessages> = {
