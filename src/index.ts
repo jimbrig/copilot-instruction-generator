@@ -1,4 +1,4 @@
-import type { Rule, Section } from './data'
+import type { Section } from './data'
 import { Buffer } from 'node:buffer'
 import * as vscode from 'vscode'
 import { Configs } from './config'
@@ -13,7 +13,22 @@ const COPILOT_PATH = '.github/copilot-instructions.md'
 const CURSOR_PATH = '.cursorrules'
 const IGNORED_WORKSPACES_KEY = 'cigIgnoredWorkspaces'
 
+interface Rule {
+  title: string
+  slug: string
+  content: string
+  tags: string[]
+  author: {
+    name: string
+    url: string
+    avatar: string
+  }
+  type?: 'create' | 'custom' | 'builtin' // 添加可选的 type 字段
+}
+
 export function activate(context: vscode.ExtensionContext) {
+  const messages = getLocaleMessages() // 确保在使用 messages 之前获取
+
   // 创建 status bar item
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
@@ -47,7 +62,6 @@ export function activate(context: vscode.ExtensionContext) {
     if (!workspaceFolders)
       return
 
-    const messages = getLocaleMessages()
     const workspaceFolder = workspaceFolders[0]
     const workspaceId = workspaceFolder.uri.toString()
 
@@ -62,13 +76,13 @@ export function activate(context: vscode.ExtensionContext) {
       await vscode.workspace.fs.stat(copilotFile)
       return
     }
-    catch {}
+    catch { }
 
     try {
       await vscode.workspace.fs.stat(cursorFile)
       return
     }
-    catch {}
+    catch { }
 
     const result = await vscode.window.showInformationMessage(
       messages.noAIConfigFound,
@@ -95,7 +109,6 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(workspaceWatcher)
 
   const searchDisposable = vscode.commands.registerCommand('ai-rules.searchAIPrompt', async () => {
-    const messages = getLocaleMessages()
     const quickPick = vscode.window.createQuickPick()
     quickPick.placeholder = messages.searchPlaceholder
 
@@ -194,7 +207,8 @@ export function activate(context: vscode.ExtensionContext) {
         else
           await insertPromptToFile(selected.rule.content)
 
-        vscode.window.showInformationMessage(messages.ruleAddedSuccess(selected.label))
+        const ruleTitle = selected.rule.title
+        vscode.window.showInformationMessage(messages.ruleAddedSuccess(ruleTitle))
       }
       quickPick.hide()
     })
@@ -267,7 +281,6 @@ export function activate(context: vscode.ExtensionContext) {
   async function writeRuleToFile(sections: Section[]) {
     const rule = findCurrentRule(sections)
     if (rule) {
-      const messages = getLocaleMessages()
       const result = await vscode.window.showWarningMessage(
         messages.confirmOverwrite,
         messages.overwrite,
@@ -289,7 +302,6 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   const clearStateDisposable = vscode.commands.registerCommand('ai-rules.clearGlobalState', async () => {
-    const messages = getLocaleMessages()
     const result = await vscode.window.showWarningMessage(
       messages.clearStateConfirm,
       messages.yes,
@@ -320,7 +332,6 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   const manageCustomRulesDisposable = vscode.commands.registerCommand('ai-rules.manageCustomRules', async () => {
-    const messages = getLocaleMessages()
     const customRules = await getCustomRules(context)
 
     const selectedRule = await vscode.window.showQuickPick(
@@ -461,7 +472,6 @@ export function activate(context: vscode.ExtensionContext) {
     if (!activeEditor)
       return
 
-    const messages = getLocaleMessages()
     const quickPick = vscode.window.createQuickPick()
     quickPick.placeholder = messages.searchPlaceholder
 
@@ -559,7 +569,8 @@ export function activate(context: vscode.ExtensionContext) {
 async function insertPromptToFile(promptText: string) {
   const workspaceFolders = vscode.workspace.workspaceFolders
   if (!workspaceFolders) {
-    vscode.window.showErrorMessage('No workspace folder found.')
+    const messages = getLocaleMessages() // 在这里获取 messages
+    vscode.window.showErrorMessage(messages.noWorkspaceFolder)
     return
   }
 
@@ -571,6 +582,7 @@ async function insertPromptToFile(promptText: string) {
 async function appendPromptToFile(promptText: string) {
   const workspaceFolders = vscode.workspace.workspaceFolders
   if (!workspaceFolders) {
+    const messages = getLocaleMessages() // 在这里获取 messages
     vscode.window.showErrorMessage(messages.noWorkspaceFolder)
     return
   }
