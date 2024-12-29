@@ -1,600 +1,392 @@
-import type { Section } from './data'
+import type { RuleBlock } from './data/builtin-rules/types'
 import { Buffer } from 'node:buffer'
 import * as vscode from 'vscode'
 import { Configs } from './config'
-import { getSections, rules } from './data'
-import { deleteCustomRule, editCustomRule, getCustomRules, saveCustomRule } from './data/custom-rules'
+import { ensureMetaRule, generateBlockComment } from './data/builtin-rules/meta'
+import { deleteCustomRule, getCustomRules, saveCustomRule } from './data/custom-rules'
+import { cleanCodeRules } from './data/rules/clean-code'
+import { pythonRules } from './data/rules/python'
 import { getLocaleMessages } from './i18n'
-
-import { getWebviewContent } from './webview'
+import { MarkdownAssociation } from './language/markdown-association'
 import { getRuleEditorContent } from './webview/rule-editor'
 
 const COPILOT_PATH = '.github/copilot-instructions.md'
 const CURSOR_PATH = '.cursorrules'
-const IGNORED_WORKSPACES_KEY = 'cigIgnoredWorkspaces'
 
-interface Rule {
-  title: string
-  slug: string
-  content: string
-  tags: string[]
-  author: {
-    name: string
-    url: string
-    avatar: string
+const builtinRules: RuleBlock[] = [...cleanCodeRules, ...pythonRules]
+
+class RuleTreeItem extends vscode.TreeItem {
+  constructor(
+    public readonly rule: RuleBlock,
+    public readonly type: 'builtin' | 'custom',
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+  ) {
+    super(rule.title, collapsibleState)
+    this.tooltip = rule.content
+    this.description = rule.tags.join(', ')
+    this.iconPath = type === 'builtin'
+      ? new vscode.ThemeIcon('symbol-constant')
+      : new vscode.ThemeIcon('bookmark')
+    this.contextValue = type
   }
-  type?: 'create' | 'custom' | 'builtin' // 添加可选的 type 字段
 }
 
-export function activate(context: vscode.ExtensionContext) {
-  const messages = getLocaleMessages() // 确保在使用 messages 之前获取
+class RulesProvider implements vscode.TreeDataProvider<RuleTreeItem> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<RuleTreeItem | undefined>()
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event
 
-  // 创建 status bar item
-  const statusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    100,
-  )
-  statusBarItem.command = 'ai-rules.openRuleFile'
-  statusBarItem.text = '$(notebook-edit) AI Rules'
-  statusBarItem.tooltip = 'Open AI Config File'
-  statusBarItem.show()
+  constructor(public readonly context: vscode.ExtensionContext) {}
 
-  // 将 status bar item 添加到订阅列表
-  context.subscriptions.push(statusBarItem)
-
-  let panel: vscode.WebviewPanel | undefined
-  let currentSection: string | undefined
-  let currentRule: string | undefined
-
-  const sections = getSections()
-
-  // 预处理规则的搜索文本
-  const rulesWithSearchText = rules.map(rule => ({
-    ...rule,
-    searchText: `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase(),
-  }))
-
-  async function checkAIConfigFiles() {
-    if (!Configs.enableAutoDetect)
-      return
-
-    const workspaceFolders = vscode.workspace.workspaceFolders
-    if (!workspaceFolders)
-      return
-
-    const workspaceFolder = workspaceFolders[0]
-    const workspaceId = workspaceFolder.uri.toString()
-
-    const ignoredWorkspaces: string[] = context.globalState.get(IGNORED_WORKSPACES_KEY, [])
-    if (ignoredWorkspaces.includes(workspaceId))
-      return
-
-    const copilotFile = vscode.Uri.joinPath(workspaceFolder.uri, COPILOT_PATH)
-    const cursorFile = vscode.Uri.joinPath(workspaceFolder.uri, CURSOR_PATH)
-
-    try {
-      await vscode.workspace.fs.stat(copilotFile)
-      return
-    }
-    catch { }
-
-    try {
-      await vscode.workspace.fs.stat(cursorFile)
-      return
-    }
-    catch { }
-
-    const result = await vscode.window.showInformationMessage(
-      messages.noAIConfigFound,
-      messages.searchAndCreate,
-      messages.ignoreProject,
-      messages.cancel,
-    )
-
-    if (result === messages.searchAndCreate) {
-      await vscode.commands.executeCommand('cig.searchAIPrompt')
-    }
-    else if (result === messages.ignoreProject) {
-      ignoredWorkspaces.push(workspaceId)
-      await context.globalState.update(IGNORED_WORKSPACES_KEY, ignoredWorkspaces)
-    }
+  refresh(): void {
+    this._onDidChangeTreeData.fire(undefined)
   }
 
-  checkAIConfigFiles()
+  getTreeItem(element: RuleTreeItem): vscode.TreeItem {
+    return element
+  }
 
-  const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() => {
-    checkAIConfigFiles()
-  })
+  async getChildren(): Promise<RuleTreeItem[]> {
+    // 获取内置规则和自定义规则
+    const rules = [...builtinRules]
+    const customRules = await getCustomRules(this.context)
 
-  context.subscriptions.push(workspaceWatcher)
-
-  const searchDisposable = vscode.commands.registerCommand('ai-rules.searchAIPrompt', async () => {
-    const quickPick = vscode.window.createQuickPick()
-    quickPick.placeholder = messages.searchPlaceholder
-
-    // 获取所有规则，包括自定义规则
-    const customRules = await getCustomRules(context)
-    const allRules = [...rulesWithSearchText, ...customRules.map(rule => ({
-      ...rule,
-      searchText: `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase(),
-    }))]
-
-    // 初始显示所有规则
-    const getAllItems = () => [
-      {
-        label: '$(add) Create New Rule',
-        description: messages.createNewRuleDescription,
-        alwaysShow: true,
-        rule: { type: 'create' } as any,
-      },
-      {
-        label: 'Custom Rules',
-        kind: vscode.QuickPickItemKind.Separator,
-      },
-      ...customRules.map(rule => ({
-        label: `$(bookmark) ${rule.title}`,
-        description: rule.tags.join(', '),
+    return [
+      ...rules.map(rule => new RuleTreeItem(
         rule,
-      })),
-      {
-        label: 'Built-in Rules',
-        kind: vscode.QuickPickItemKind.Separator,
-      },
-      ...allRules.map(rule => ({
-        label: `$(symbol-constant) ${rule.title}`,
-        description: rule.tags.join(', '),
-        rule,
-      })),
+        'builtin',
+        vscode.TreeItemCollapsibleState.None,
+      )),
+      ...customRules.map(rule => new RuleTreeItem(
+        rule as RuleBlock,
+        'custom',
+        vscode.TreeItemCollapsibleState.None,
+      )),
     ]
-
-    quickPick.items = getAllItems()
-
-    // 修改选择处理逻辑
-    quickPick.onDidAccept(async () => {
-      const selected = quickPick.selectedItems[0] as { label: string, description: string, rule: Rule }
-      if (!selected)
-        return
-
-      if (selected.rule.type === 'create') {
-        quickPick.hide()
-        const title = await vscode.window.showInputBox({
-          prompt: messages.enterRuleTitle,
-          placeHolder: messages.ruleTitlePlaceholder,
-        })
-        if (!title)
-          return
-
-        const content = await vscode.window.showInputBox({
-          prompt: messages.enterRuleContent,
-          placeHolder: messages.ruleContentPlaceholder,
-        })
-        if (!content)
-          return
-
-        const tags = await vscode.window.showInputBox({
-          prompt: messages.enterRuleTags,
-          placeHolder: messages.ruleTagsPlaceholder,
-        })
-
-        const newRule: Rule = {
-          title,
-          slug: title.toLowerCase().replace(/\s+/g, '-'),
-          content,
-          tags: tags ? tags.split(',').map(t => t.trim()) : [],
-          author: {
-            name: 'Custom',
-            url: '',
-            avatar: '',
-          },
-        }
-
-        await saveCustomRule(context, newRule)
-        vscode.window.showInformationMessage(messages.customRuleAdded)
-        return
-      }
-
-      const choice = await vscode.window.showQuickPick(
-        [
-          { label: messages.replaceContent, value: 'replace' },
-          { label: messages.appendContent, value: 'append' },
-        ],
-        { placeHolder: messages.selectOperation },
-      )
-
-      if (choice) {
-        if (choice.value === 'append')
-          await appendPromptToFile(selected.rule.content)
-        else
-          await insertPromptToFile(selected.rule.content)
-
-        const ruleTitle = selected.rule.title
-        vscode.window.showInformationMessage(messages.ruleAddedSuccess(ruleTitle))
-      }
-      quickPick.hide()
-    })
-  })
-
-  const disposable = vscode.commands.registerCommand('ai-rules.selectAIPrompt', async () => {
-    if (panel) {
-      panel.reveal(vscode.ViewColumn.One)
-    }
-    else {
-      panel = createWebviewPanel()
-    }
-
-    await updatePanelContent(sections)
-  })
-
-  function createWebviewPanel(): vscode.WebviewPanel {
-    const newPanel = vscode.window.createWebviewPanel(
-      'aiPromptPreview',
-      'AI Prompt Preview',
-      vscode.ViewColumn.One,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')],
-      },
-    )
-
-    newPanel.webview.onDidReceiveMessage(handleWebviewMessage)
-    context.subscriptions.push(newPanel)
-
-    return newPanel
   }
+}
 
-  async function updatePanelContent(sections: Section[]) {
-    if (!panel)
-      return
+// 创建全局的RulesProvider实例
+let rulesProvider: RulesProvider
 
-    const section = sections.find(s => s.tag === currentSection)
-    const rule = section?.rules.find(r => r.title === currentRule)
+async function editRule(rule: RuleBlock) {
+  const messages = getLocaleMessages()
+  const panel = vscode.window.createWebviewPanel(
+    'ruleEditor',
+    `${messages.editRule}: ${rule.title}`,
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+    },
+  )
 
-    panel.webview.html = getWebviewContent(panel.webview, {
-      title: rule ? rule.title : 'Select a rule',
-      content: rule ? rule.content : 'Please select a section and a rule to preview.',
-      sectionNames: sections.map(section => section.tag),
-      sections, // Ensure sections are passed to getWebviewContent
-      currentSection,
-      currentRule,
-      uri: context.extensionUri,
-    })
-  }
+  panel.webview.html = getRuleEditorContent(panel.webview, rule)
 
-  async function handleWebviewMessage(message: any) {
-    switch (message.command) {
-      case 'changeSection':
-        currentSection = message.section
-        currentRule = undefined // Reset currentRule when changing section
-        await updatePanelContent(sections)
-        break
-      case 'changeRule':
-        currentRule = message.rule === '' ? undefined : message.rule // Handle empty selection
-        await updatePanelContent(sections)
-        if (currentRule) {
-          await writeRuleToFile(sections)
-        }
-        break
-    }
-  }
-
-  async function writeRuleToFile(sections: Section[]) {
-    const rule = findCurrentRule(sections)
-    if (rule) {
-      const result = await vscode.window.showWarningMessage(
-        messages.confirmOverwrite,
-        messages.overwrite,
-        messages.cancel,
-      )
-
-      if (result === messages.overwrite) {
-        await insertPromptToFile(rule.content)
-        vscode.window.showInformationMessage(messages.ruleAddedSuccess(currentRule!))
-      }
-    }
-  }
-
-  function findCurrentRule(sections: Section[]): Rule | undefined {
-    return sections
-      .find(s => s.tag === currentSection)
-      ?.rules
-      .find(r => r.title === currentRule)
-  }
-
-  const clearStateDisposable = vscode.commands.registerCommand('ai-rules.clearGlobalState', async () => {
-    const result = await vscode.window.showWarningMessage(
-      messages.clearStateConfirm,
-      messages.yes,
-      messages.no,
-    )
-
-    if (result === messages.yes) {
-      await context.globalState.update(IGNORED_WORKSPACES_KEY, undefined)
-      vscode.window.showInformationMessage(messages.clearStateSuccess)
-    }
-  })
-
-  const openRuleFileDisposable = vscode.commands.registerCommand('ai-rules.openRuleFile', async () => {
-    const workspaceFolders = vscode.workspace.workspaceFolders
-    if (!workspaceFolders) {
-      vscode.window.showErrorMessage(messages.noWorkspaceFolder)
-      return
-    }
-
-    const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
+  panel.webview.onDidReceiveMessage(async (message) => {
     try {
-      const doc = await vscode.workspace.openTextDocument(filePath)
-      await vscode.window.showTextDocument(doc)
+      switch (message.command) {
+        case 'saveRule':
+          await updateRuleInFile(rule, message.rule)
+          vscode.window.showInformationMessage(messages.ruleUpdated)
+          panel.dispose()
+          break
+        case 'error':
+          vscode.window.showErrorMessage(message.message)
+          break
+      }
+    }
+    catch (error) {
+      console.error('Error handling webview message:', error)
+      vscode.window.showErrorMessage(messages.operationFailed)
+    }
+  })
+}
+
+async function updateRuleInFile(oldRule: RuleBlock, newRule: RuleBlock) {
+  const messages = getLocaleMessages()
+  const workspaceFolders = vscode.workspace.workspaceFolders
+  if (!workspaceFolders) {
+    throw new Error(messages.noWorkspaceFolder)
+  }
+
+  const filePath = vscode.Uri.joinPath(
+    workspaceFolders[0].uri,
+    Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH,
+  )
+
+  try {
+    const fileContent = await vscode.workspace.fs.readFile(filePath)
+    const content = fileContent.toString()
+
+    // 验证新规则
+    if (!newRule.title || newRule.title.length < 3 || newRule.title.length > 100) {
+      throw new Error(messages.titleRequired)
+    }
+    if (!newRule.content || newRule.content.length < 10) {
+      throw new Error(messages.contentRequired)
+    }
+    if (!newRule.importance || !['must', 'should', 'may'].includes(newRule.importance)) {
+      throw new Error(messages.invalidImportance)
+    }
+    if (newRule.source && !newRule.source.match(/^https?:\/\/.+/)) {
+      throw new Error(messages.ruleSourceOptional)
+    }
+
+    // 检查标题是否重复（排除当前规则）
+    const lines = content.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.includes('> @rule') && line.includes(newRule.title) && !line.includes(oldRule.title)) {
+        throw new Error(`${messages.titleRequired}: ${newRule.title}`)
+      }
+    }
+
+    // 更新规则内容
+    const updatedContent = content.split('\n').map((line) => {
+      if (line.includes(`> @rule`) && line.includes(oldRule.title)) {
+        const blockComment = generateBlockComment(newRule)
+        return blockComment
+      }
+      if (line === oldRule.content) {
+        return newRule.content
+      }
+      return line
+    }).join('\n')
+
+    await vscode.workspace.fs.writeFile(filePath, Buffer.from(updatedContent))
+
+    // 刷新树视图
+    rulesProvider.refresh()
+  }
+  catch (error) {
+    console.error('Error updating rule:', error)
+    throw error
+  }
+}
+
+async function insertRuleBlock(rule: RuleBlock) {
+  const messages = getLocaleMessages()
+  const workspaceFolders = vscode.workspace.workspaceFolders
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage(messages.noWorkspaceFolder)
+    return
+  }
+
+  const filePath = vscode.Uri.joinPath(
+    workspaceFolders[0].uri,
+    Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH,
+  )
+
+  // Ensure file contains meta rule
+  await ensureMetaRule(filePath.fsPath)
+
+  // Generate rule block content
+  const blockComment = generateBlockComment(rule)
+  const content = `${blockComment}${rule.content}`
+
+  try {
+    // Read existing content
+    let existingContent = ''
+    try {
+      const fileContent = await vscode.workspace.fs.readFile(filePath)
+      existingContent = fileContent.toString()
     }
     catch {
-      vscode.window.showErrorMessage(messages.fileNotFound)
+      existingContent = `# ${Configs.cursorRules ? 'Cursor Rules' : 'Copilot Instructions'}`
     }
-  })
 
-  const manageCustomRulesDisposable = vscode.commands.registerCommand('ai-rules.manageCustomRules', async () => {
-    const customRules = await getCustomRules(context)
-
-    const selectedRule = await vscode.window.showQuickPick(
-      [
-        { label: '$(add) Add New Rule', value: 'new' },
-        ...customRules.map(rule => ({
-          label: rule.title,
-          description: rule.tags.join(', '),
-          value: rule.slug,
-        })),
-      ],
-      { placeHolder: messages.selectRuleToManage },
-    )
-
-    if (!selectedRule)
-      return
-
-    if (selectedRule.value === 'new') {
-      // 实现新建规则的逻辑
-      const title = await vscode.window.showInputBox({
-        prompt: messages.enterRuleTitle,
-        placeHolder: messages.ruleTitlePlaceholder,
-      })
-      if (!title)
-        return
-
-      const content = await vscode.window.showInputBox({
-        prompt: messages.enterRuleContent,
-        placeHolder: messages.ruleContentPlaceholder,
-      })
-      if (!content)
-        return
-
-      const tags = await vscode.window.showInputBox({
-        prompt: messages.enterRuleTags,
-        placeHolder: messages.ruleTagsPlaceholder,
-      })
-
-      const newRule: Rule = {
-        title,
-        slug: title.toLowerCase().replace(/\s+/g, '-'),
-        content,
-        tags: tags ? tags.split(',').map(t => t.trim()) : [],
-        author: {
-          name: 'Custom',
-          url: '',
-          avatar: '',
-        },
-      }
-
-      await saveCustomRule(context, newRule)
+    // Check if rule already exists
+    if (existingContent.includes(content)) {
       vscode.window.showInformationMessage(messages.customRuleAdded)
       return
     }
 
-    const action = await vscode.window.showQuickPick(
-      [
-        { label: messages.editRule, value: 'edit' },
-        { label: messages.deleteRule, value: 'delete' },
-      ],
-      { placeHolder: messages.selectAction },
-    )
+    // Append new content
+    const newContent = `${existingContent}\n\n${content}`
+    await vscode.workspace.fs.writeFile(filePath, Buffer.from(newContent))
+    vscode.window.showInformationMessage(messages.ruleAddedSuccess(rule.title))
+  }
+  catch {
+    vscode.window.showErrorMessage(messages.operationFailed)
+  }
+}
 
-    if (!action)
-      return
+async function createRule() {
+  const messages = getLocaleMessages()
 
-    const rule = customRules.find(r => r.slug === selectedRule.value)
-    if (!rule)
-      return
+  // 获取规则标题
+  const title = await vscode.window.showInputBox({
+    prompt: messages.enterRuleTitle,
+    placeHolder: messages.ruleTitlePlaceholder,
+    validateInput: (value) => {
+      if (!value)
+        return messages.titleRequired
+      if (value.length < 3)
+        return messages.titleRequired
+      if (value.length > 100)
+        return messages.titleRequired
+      return null
+    },
+  })
+  if (!title)
+    return
 
-    if (action.value === 'edit') {
-      const title = await vscode.window.showInputBox({
-        prompt: messages.enterRuleTitle,
-        placeHolder: messages.ruleTitlePlaceholder,
-        value: rule.title,
-      })
-      if (!title)
-        return
+  // 获取规则内容
+  const content = await vscode.window.showInputBox({
+    prompt: messages.enterRuleContent,
+    placeHolder: messages.ruleContentPlaceholder,
+    validateInput: (value) => {
+      if (!value)
+        return messages.contentRequired
+      if (value.length < 10)
+        return messages.contentRequired
+      return null
+    },
+  })
+  if (!content)
+    return
 
-      const content = await vscode.window.showInputBox({
-        prompt: messages.enterRuleContent,
-        placeHolder: messages.ruleContentPlaceholder,
-        value: rule.content,
-      })
-      if (!content)
-        return
+  // 获取规则标签
+  const tagsInput = await vscode.window.showInputBox({
+    prompt: messages.enterRuleTags,
+    placeHolder: messages.ruleTagsPlaceholder,
+  })
+  if (!tagsInput)
+    return
+  const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean)
 
-      const tags = await vscode.window.showInputBox({
-        prompt: messages.enterRuleTags,
-        placeHolder: messages.ruleTagsPlaceholder,
-        value: rule.tags.join(', '),
-      })
+  // 获取规则重要性
+  const importance = await vscode.window.showQuickPick(
+    [
+      { label: messages.importanceMust, value: 'must' },
+      { label: messages.importanceShould, value: 'should' },
+      { label: messages.importanceMay, value: 'may' },
+    ],
+    {
+      placeHolder: messages.selectImportance,
+    },
+  )
+  if (!importance)
+    return
 
-      await editCustomRule(context, rule.slug, {
-        title,
-        content,
-        tags: tags ? tags.split(',').map(t => t.trim()) : [],
-      })
-      vscode.window.showInformationMessage(messages.ruleUpdated)
-    }
-    else if (action.value === 'delete') {
-      const confirm = await vscode.window.showWarningMessage(
-        messages.confirmDelete(rule.title),
+  // 获取规则来源（可选）
+  const source = await vscode.window.showInputBox({
+    prompt: messages.enterRuleSource,
+    placeHolder: 'https://',
+  })
+
+  // 创建新规则
+  const rule: RuleBlock = {
+    title,
+    content,
+    tags,
+    importance: importance.value as 'must' | 'should' | 'may',
+    ...(source ? { source } : {}),
+    slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    author: {
+      name: 'Custom Rule',
+      url: '',
+      avatar: '',
+    },
+  }
+
+  // 保存规则
+  try {
+    await saveCustomRule(rulesProvider.context, rule)
+    await insertRuleBlock(rule)
+    rulesProvider.refresh()
+    vscode.window.showInformationMessage(messages.ruleAddedSuccess(title))
+  }
+  catch (error) {
+    console.error('Error creating rule:', error)
+    vscode.window.showErrorMessage(messages.operationFailed)
+  }
+}
+
+export function activate(context: vscode.ExtensionContext) {
+  // Create TreeView
+  rulesProvider = new RulesProvider(context)
+  const treeView = vscode.window.createTreeView('aiRules', {
+    treeDataProvider: rulesProvider,
+    showCollapseAll: true,
+  })
+
+  // Register apply rule command
+  const applyRuleCommand = vscode.commands.registerCommand(
+    'ai-rules.applyRule',
+    async (item: RuleTreeItem) => {
+      await insertRuleBlock(item.rule)
+    },
+  )
+
+  // Register create rule command
+  const createRuleCommand = vscode.commands.registerCommand(
+    'ai-rules.createRule',
+    async () => {
+      await createRule()
+    },
+  )
+
+  // Register edit rule command
+  const editRuleCommand = vscode.commands.registerCommand(
+    'ai-rules.editRule',
+    async (item: RuleTreeItem) => {
+      await editRule(item.rule)
+    },
+  )
+
+  // Register delete rule command
+  const deleteRuleCommand = vscode.commands.registerCommand(
+    'ai-rules.deleteRule',
+    async (item: RuleTreeItem) => {
+      const messages = getLocaleMessages()
+      const answer = await vscode.window.showWarningMessage(
+        messages.confirmDelete(item.rule.title),
+        { modal: true },
         messages.yes,
         messages.no,
       )
-      if (confirm === messages.yes) {
-        await deleteCustomRule(context, rule.slug)
-        vscode.window.showInformationMessage(messages.ruleDeleted)
+      if (answer === messages.yes) {
+        try {
+          await deleteCustomRule(context, item.rule.slug)
+          rulesProvider.refresh()
+          vscode.window.showInformationMessage(messages.ruleDeleted)
+        }
+        catch {
+          vscode.window.showErrorMessage(messages.deleteRuleFailed)
+        }
       }
-    }
+    },
+  )
+
+  // Create status bar button
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100,
+  )
+  statusBarItem.command = 'workbench.view.extension.aiRules'
+  statusBarItem.text = '$(gear) AI Rules'
+  statusBarItem.tooltip = 'Manage AI Rules'
+  statusBarItem.show()
+
+  // Register Markdown file association
+  const markdownAssociation = MarkdownAssociation.register()
+
+  // Add file watcher
+  const fileWatcher = vscode.workspace.onDidOpenTextDocument(async (document) => {
+    if (document.fileName.endsWith('.cursorrules') || document.fileName.endsWith('copilot-instructions.md'))
+      await ensureMetaRule(document.fileName)
   })
 
-  const createRuleDisposable = vscode.commands.registerCommand('ai-rules.createRule', async () => {
-    const panel = vscode.window.createWebviewPanel(
-      'ruleEditor',
-      'Create New Rule',
-      vscode.ViewColumn.Beside,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-      },
-    )
-
-    panel.webview.html = getRuleEditorContent(panel.webview)
-
-    panel.webview.onDidReceiveMessage(async (message) => {
-      if (message.command === 'saveRule') {
-        await saveCustomRule(context, message.rule)
-        vscode.window.showInformationMessage(messages.customRuleAdded)
-        panel.dispose()
-      }
-    })
-  })
-
-  const searchRulesDisposable = vscode.commands.registerCommand('ai-rules.searchRules', async () => {
-    const activeEditor = vscode.window.activeTextEditor
-    if (!activeEditor)
-      return
-
-    const quickPick = vscode.window.createQuickPick()
-    quickPick.placeholder = messages.searchPlaceholder
-
-    // 获取所有规则，包括自定义规则
-    const customRules = await getCustomRules(context)
-    const allRules = [...rulesWithSearchText, ...customRules.map(rule => ({
-      ...rule,
-      searchText: `${rule.title} ${rule.tags.join(' ')} ${rule.content}`.toLowerCase(),
-    }))]
-
-    // 初始显示所有规则
-    const getAllItems = () => [
-      {
-        label: '$(add) Create New Rule',
-        description: messages.createNewRuleDescription,
-        alwaysShow: true,
-        rule: { type: 'create' } as any,
-      },
-      {
-        label: 'Custom Rules',
-        kind: vscode.QuickPickItemKind.Separator,
-      },
-      ...customRules.map(rule => ({
-        label: `$(bookmark) ${rule.title}`,
-        description: rule.tags.join(', '),
-        rule,
-      })),
-      {
-        label: 'Built-in Rules',
-        kind: vscode.QuickPickItemKind.Separator,
-      },
-      ...allRules.map(rule => ({
-        label: `$(symbol-constant) ${rule.title}`,
-        description: rule.tags.join(', '),
-        rule,
-      })),
-    ]
-
-    quickPick.items = getAllItems()
-
-    // 使用防抖进行搜索
-    let debounceTimer: NodeJS.Timeout
-    quickPick.onDidChangeValue((value) => {
-      clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        const searchQuery = value.toLowerCase()
-        quickPick.items = searchQuery
-          ? allRules
-              .filter(rule => rule.searchText.includes(searchQuery))
-              .map(rule => ({
-                label: `$(symbol-constant) ${rule.title}`,
-                description: rule.tags.join(', '),
-                rule,
-              }))
-          : getAllItems()
-      }, 100)
-    })
-
-    quickPick.onDidAccept(async () => {
-      const selected = quickPick.selectedItems[0] as { label: string, description: string, rule: Rule }
-      if (!selected)
-        return
-
-      if (selected.rule.type === 'create') {
-        quickPick.hide()
-        await vscode.commands.executeCommand('ai-rules.createRule')
-        return
-      }
-
-      const choice = await vscode.window.showQuickPick(
-        [
-          { label: messages.replaceContent, value: 'replace' },
-          { label: messages.appendContent, value: 'append' },
-        ],
-        { placeHolder: messages.selectOperation },
-      )
-
-      if (choice) {
-        if (choice.value === 'append')
-          await appendPromptToFile(selected.rule.content)
-        else
-          await insertPromptToFile(selected.rule.content)
-
-        vscode.window.showInformationMessage(messages.ruleAddedSuccess(selected.label))
-      }
-      quickPick.hide()
-    })
-
-    quickPick.show()
-  })
-
-  context.subscriptions.push(disposable, searchDisposable, clearStateDisposable, openRuleFileDisposable, manageCustomRulesDisposable, createRuleDisposable, searchRulesDisposable)
-}
-
-async function insertPromptToFile(promptText: string) {
-  const workspaceFolders = vscode.workspace.workspaceFolders
-  if (!workspaceFolders) {
-    const messages = getLocaleMessages() // 在这里获取 messages
-    vscode.window.showErrorMessage(messages.noWorkspaceFolder)
-    return
-  }
-
-  const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
-  const initialContent = `# ${Configs.cursorRules ? 'Cursor Rules' : 'Copilot Instructions'}\n\n${promptText}`
-  await vscode.workspace.fs.writeFile(filePath, Buffer.from(initialContent, 'utf8'))
-}
-
-async function appendPromptToFile(promptText: string) {
-  const workspaceFolders = vscode.workspace.workspaceFolders
-  if (!workspaceFolders) {
-    const messages = getLocaleMessages() // 在这里获取 messages
-    vscode.window.showErrorMessage(messages.noWorkspaceFolder)
-    return
-  }
-
-  const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, Configs.cursorRules ? CURSOR_PATH : COPILOT_PATH)
-  try {
-    const existingContent = await vscode.workspace.fs.readFile(filePath)
-    const newContent = `${existingContent.toString()}\n\n${promptText}`
-    await vscode.workspace.fs.writeFile(filePath, Buffer.from(newContent, 'utf8'))
-  }
-  catch {
-    // 如果文件不存在，创建新文件
-    await insertPromptToFile(promptText)
-  }
+  // Register all commands and views
+  context.subscriptions.push(
+    treeView,
+    applyRuleCommand,
+    createRuleCommand,
+    editRuleCommand,
+    deleteRuleCommand,
+    statusBarItem,
+    markdownAssociation,
+    fileWatcher,
+  )
 }

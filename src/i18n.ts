@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-interface LocalizedMessages {
+export interface LocalizedMessages {
   searchPlaceholder: string
   noAIConfigFound: string
   searchAndCreate: string
@@ -35,6 +35,19 @@ interface LocalizedMessages {
   ruleDeleted: string
   confirmDelete: (title: string) => string
   createNewRuleDescription: string
+  ruleNotFound: string
+  titleRequired: string
+  contentRequired: string
+  deleteRuleFailed: string
+  operationFailed: string
+  ruleImportanceRequired: string
+  ruleSourceOptional: string
+  invalidImportance: string
+  importanceMust: string
+  importanceShould: string
+  importanceMay: string
+  selectImportance: string
+  enterRuleSource: string
 }
 
 const zhCN: LocalizedMessages = {
@@ -72,6 +85,19 @@ const zhCN: LocalizedMessages = {
   ruleDeleted: '规则已删除',
   confirmDelete: (title: string) => `确定要删除规则 "${title}" 吗？`,
   createNewRuleDescription: '创建新的 AI 规则模板',
+  ruleNotFound: '找不到规则',
+  titleRequired: '标题不能为空',
+  contentRequired: '内容不能为空',
+  deleteRuleFailed: '删除规则失败',
+  operationFailed: '操作失败',
+  ruleImportanceRequired: '规则重要性是必需的',
+  ruleSourceOptional: '规则来源(可选)',
+  invalidImportance: '无效的重要性级别,必须是 must/should/may',
+  importanceMust: '必须 (Must)',
+  importanceShould: '应该 (Should)',
+  importanceMay: '可以 (May)',
+  selectImportance: '选择规则重要性',
+  enterRuleSource: '输入规则来源 URL (可选)',
 }
 
 const enUS: LocalizedMessages = {
@@ -109,6 +135,19 @@ const enUS: LocalizedMessages = {
   ruleDeleted: 'Rule deleted',
   confirmDelete: (title: string) => `Are you sure you want to delete rule "${title}"?`,
   createNewRuleDescription: 'Create a new AI rule template',
+  ruleNotFound: 'Rule not found',
+  titleRequired: 'Title is required',
+  contentRequired: 'Content is required',
+  deleteRuleFailed: 'Failed to delete rule',
+  operationFailed: 'Operation failed',
+  ruleImportanceRequired: 'Rule importance is required',
+  ruleSourceOptional: 'Rule source (optional)',
+  invalidImportance: 'Invalid importance level, must be must/should/may',
+  importanceMust: 'Must',
+  importanceShould: 'Should',
+  importanceMay: 'May',
+  selectImportance: 'Select rule importance',
+  enterRuleSource: 'Enter rule source URL (optional)',
 }
 
 const messages: Record<string, LocalizedMessages> = {

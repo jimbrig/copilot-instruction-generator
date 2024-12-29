@@ -2,6 +2,30 @@
 
 auto generate instruction for cursor / copilot.
 
+## Rule Block Definition
+
+```typescript
+interface RuleBlock {
+  title: string // Rule title
+  slug: string // URL-friendly unique identifier
+  content: string // Concise rule content, key points separated by commas
+  tags: string[] // Tags for categorization and search
+  importance: 'must' | 'should' | 'may' // RFC 2119 style importance level
+  source?: string // Original source link (optional)
+  author: {
+    name: string // Author name
+    url: string // Author homepage
+    avatar: string // Author avatar URL
+  }
+}
+```
+
+Rule block design principles:
+1. Concise content: Each rule should express core concepts concisely
+2. Traceable source: Link to complete documentation through source field
+3. Importance levels: Use RFC 2119 style must/should/may to indicate priority
+4. Searchability: Use tags for multi-dimensional categorization
+
 ## features
 
 - detect current project and generate instruction
@@ -11,8 +35,9 @@ auto generate instruction for cursor / copilot.
 ### Todo
 
 - [x] support search and add predefined instructions
-- [] auto update rules
+- [ ] auto update rules
 - [x] support custom rules
+- [x] add fundamental programming principles (e.g., KISS, DRY, SOLID, Zen of Python)
 
 ### how to use
 
@@ -33,15 +58,14 @@ auto generate instruction for cursor / copilot.
 
 <!-- commands -->
 
-| Command                      | Title                                 |
-| ---------------------------- | ------------------------------------- |
-| `ai-rules.selectAIPrompt`    | AI Rules: Browse AI Rules by Category |
-| `ai-rules.searchAIPrompt`    | AI Rules: Search AI Rules             |
-| `ai-rules.clearGlobalState`  | AI Rules: Clear Extension State       |
-| `ai-rules.openRuleFile`      | AI Rules: Open AI Rules File          |
-| `ai-rules.manageCustomRules` | AI Rules: Manage Custom Rules         |
-| `ai-rules.searchRules`       | AI Rules: Search AI Rules             |
-| `ai-rules.createRule`        | AI Rules: Create New Rule             |
+| Command                     | Title                           |
+| --------------------------- | ------------------------------- |
+| `ai-rules.searchRules`      | AI Rules: Search AI Rules       |
+| `ai-rules.clearGlobalState` | AI Rules: Clear Extension State |
+| `ai-rules.createRule`       | AI Rules: Create New Rule       |
+| `ai-rules.editRule`         | AI Rules: Edit Rule             |
+| `ai-rules.deleteRule`       | AI Rules: Delete Rule           |
+| `ai-rules.applyRule`        | AI Rules: Apply Rule            |
 
 <!-- commands -->
 

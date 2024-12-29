@@ -37,47 +37,6 @@
     "onStartupFinished"
   ],
   "contributes": {
-    "commands": [
-      {
-        "command": "ai-rules.selectAIPrompt",
-        "title": "Browse AI Rules by Category",
-        "category": "AI Rules"
-      },
-      {
-        "command": "ai-rules.searchAIPrompt",
-        "title": "Search AI Rules",
-        "category": "AI Rules"
-      },
-      {
-        "command": "ai-rules.clearGlobalState",
-        "title": "Clear Extension State",
-        "category": "AI Rules"
-      },
-      {
-        "command": "ai-rules.openRuleFile",
-        "title": "Open AI Rules File",
-        "category": "AI Rules",
-        "icon": "$(notebook-edit)"
-      },
-      {
-        "command": "ai-rules.manageCustomRules",
-        "title": "Manage Custom Rules",
-        "category": "AI Rules",
-        "icon": "$(add)"
-      },
-      {
-        "command": "ai-rules.searchRules",
-        "title": "Search AI Rules",
-        "category": "AI Rules",
-        "icon": "$(search)"
-      },
-      {
-        "command": "ai-rules.createRule",
-        "title": "Create New Rule",
-        "category": "AI Rules",
-        "icon": "$(add)"
-      }
-    ],
     "configuration": {
       "type": "object",
       "title": "AI Rules",
@@ -94,26 +53,97 @@
         }
       }
     },
-    "menus": {
-      "editor/title": [
+    "viewsContainers": {
+      "activitybar": [
         {
-          "command": "ai-rules.searchRules",
-          "group": "navigation@1",
-          "when": "resourceFilename =~ /\\.cursorrules$|\\.md$/"
-        },
-        {
-          "command": "ai-rules.createRule",
-          "group": "navigation@2",
-          "when": "resourceFilename =~ /\\.cursorrules$|\\.md$/"
-        }
-      ],
-      "statusBar": [
-        {
-          "command": "ai-rules.openRuleFile",
-          "group": "navigation"
+          "id": "aiRulesExplorer",
+          "title": "AI Rules",
+          "icon": "media/icon.svg"
         }
       ]
-    }
+    },
+    "views": {
+      "aiRulesExplorer": [
+        {
+          "id": "aiRules",
+          "name": "AI Rules",
+          "icon": "media/icon.svg",
+          "contextualTitle": "AI Rules"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "ai-rules.searchRules",
+          "when": "workbenchState != empty"
+        },
+        {
+          "command": "ai-rules.clearGlobalState",
+          "when": "workbenchState != empty"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "ai-rules.createRule",
+          "when": "view == aiRules",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ai-rules.editRule",
+          "when": "view == aiRules && viewItem == custom",
+          "group": "inline@1"
+        },
+        {
+          "command": "ai-rules.deleteRule",
+          "when": "view == aiRules && viewItem == custom",
+          "group": "inline@2"
+        },
+        {
+          "command": "ai-rules.applyRule",
+          "when": "view == aiRules",
+          "group": "inline@3"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ai-rules.searchRules",
+        "title": "Search AI Rules",
+        "category": "AI Rules"
+      },
+      {
+        "command": "ai-rules.clearGlobalState",
+        "title": "Clear Extension State",
+        "category": "AI Rules"
+      },
+      {
+        "command": "ai-rules.createRule",
+        "title": "Create New Rule",
+        "category": "AI Rules",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ai-rules.editRule",
+        "title": "Edit Rule",
+        "category": "AI Rules",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "ai-rules.deleteRule",
+        "title": "Delete Rule",
+        "category": "AI Rules",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ai-rules.applyRule",
+        "title": "Apply Rule",
+        "category": "AI Rules",
+        "icon": "$(check)"
+      }
+    ]
   },
   "scripts": {
     "build": "tsup src/index.ts --external vscode",
